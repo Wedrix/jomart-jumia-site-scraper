@@ -1,0 +1,3 @@
+* Work on categories
+* Add price and weight
+* Work on producer.js
