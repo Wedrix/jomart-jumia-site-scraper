@@ -73,7 +73,7 @@ const Queue = require('bull');
                         return '';
                     });
 
-                    var productData = {
+                    let productData = {
                       name: name,
                       slug: slugify(name.toLowerCase()),
                       active: 'TRUE',
@@ -98,8 +98,9 @@ const Queue = require('bull');
                     };
 
                     // Create & Save Category in CSV file
+                    let file = (category.name + '.csv');
                     stringify([productData],{
-                      header: !(fs.existsSync('jumia_products.csv')),
+                      header: !(fs.existsSync(file)),
                       quoted:true,
                       columns:[
                         {key:'name', header:'NAME'},{key:'slug', header:'SLUG'},{key:'active', header:'ACTIVE'},
@@ -110,9 +111,9 @@ const Queue = require('bull');
                         {key:'tags',header:'TAGS'},{key:'minPrice',header:'MINIMUM_PRICE'},{key:'maxPrice',header:'MAXIMUM_PRICE'},
                         {key:'gtin', header:'GTIN'},{key:'gtinType',header:'GTIN_TYPE'},{key:'mpn',header:'MPN'},
                       ]},(error, csv_string) => {
-                        fs.appendFile('jumia_products.csv', csv_string, (err) => {
+                        fs.appendFile(file, csv_string, (err) => {
                             if (err) throw err;
-                            console.log('Added ' + productData.name + ' to CSV');
+                            console.log('Added ' + productData.name + ' to ' + file);
 
                             // Exit
                             iterator++;
