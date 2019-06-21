@@ -1,33 +1,34 @@
 const puppeteer = require('puppeteer');
 const stringify = require('csv-stringify');
-const slugify = require('slugify');
+const parse = require('csv-parse');
+const fs = require('fs');
 const Queue = require('bull');
 
 (async () => {
   var categoryPagesQueue = new Queue('category-pages-queue');
+    // Empty Queue
+    await categoryPagesQueue.empty();
+
   var browser = await puppeteer.launch();
 
-  const categoryLinks = [
-    'https://www.jumia.com.gh/home-office-appliances/?shipped_from=country_local',
-    'https://www.jumia.com.gh/phones-tablets/?shipped_from=country_local',
-    'https://www.jumia.com.gh/computing/?shipped_from=country_local',
-    'https://www.jumia.com.gh/category-fashion-by-jumia/?shipped_from=country_local',
-    'https://www.jumia.com.gh/home-office/?shipped_from=country_local',
-  ];
+  var categoriesCSV = fs.readFileSync('categories.csv','utf8');
 
-  for(var i = 0; i < categoryLinks.length; i++){
+  parse(categoriesCSV,{columns:true},(err,data) => {
+      var categories = data;
+
       // Parse Category Pages
-      let categoryPageLink = categoryLinks[i];
+      var iterator = 0;
 
       (function parseCategoryPage(categoryPageLink){
-        setTimeout(() => {
+          let category = categories[iterator];
+
           browser.newPage().then((page) => {
             page.goto(categoryPageLink,{timeout:15000}).then(() => {
               console.log('Successfully navigated to category link: ' + categoryPageLink);
 
-              categoryPagesQueue.add({link: categoryPageLink},{removeOnComplete: true});
+              categoryPagesQueue.add(category,{removeOnComplete: true});
 
-              console.log('Successfully added link: ' + categoryPageLink + ' to queue');
+              console.log('Successfully added category link: ' + categoryPageLink + ' to queue');
 
               page.$('section.pagination a[title=Next]').then(nextCategoryPageElement => {
                 if(nextCategoryPageElement){
@@ -35,13 +36,20 @@ const Queue = require('bull');
                         parseCategoryPage(nextPageLink);
                     });
                 }else{
-                    console.log('Job Completed! Welcome Jomartt!');
-                    page.close();
+                    // Exit
+                    iterator++;
+
+                    if(iterator < categories.length){
+                        let categoryPageLink = categories[iterator].link;
+                        parseCategoryPage(categoryPageLink);
+                    }else{
+                        console.log('Job Completed! Welcome Jomartt!');
+                        page.close();
+                    }
                 }
               });
             });
           });
-        }, 20000)
-      })(categoryPageLink);
-  }
+      })(categories[0].link);
+  });
 })();

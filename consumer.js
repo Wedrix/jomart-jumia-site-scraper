@@ -9,10 +9,12 @@ const Queue = require('bull');
   var browser = await puppeteer.launch();
 
   categoryPagesQueue.process(async (job,done) => {
-      (function scrapeCategoryPage(categoryPageLink){
+      let category = job.data;
+
+      (function scrapeCategoryPage(category){
         browser.newPage().then((page) => {
-          page.goto(categoryPageLink,{timeout:15000}).then(() => {
-            console.log('Successfully navigated to category link: ' + categoryPageLink);
+          page.goto(category.link,{timeout:15000}).then(() => {
+            console.log('Successfully navigated to category link: ' + category.link);
 
             // Scrape Category Page
             page.$$eval('section.products>div.sku>a.link',productLinkElements => {
@@ -33,10 +35,27 @@ const Queue = require('bull');
                     console.log('Successfully navigated to product link: ' + productLink);
 
                     // Scrape Product Page
-                    let productName = await page.$eval('section.sku-detail>div.details-wrapper>div.details h1.title',productElement => productElement.innerText);
-                    let brand = await page.$eval('section.sku-detail>div.details-wrapper>div.details>div.sub-title a', brandLinkElement => brandLinkElement.innerText);
-                    let description = await page.$eval('div#productDescriptionTab>div.product-description', descriptionDivElement => descriptionDivElement.innerHTML);
-                    let price = await page.$eval('div.details-footer>div.price-box span.price>:last-child', priceSpanElement => priceSpanElement.innerText);
+                    let name = await page.$eval('section.sku-detail>div.details-wrapper>div.details h1.title',titleH1Element => titleH1Element.innerText).catch(error => {
+                        console.log(error);
+                        return '';
+                    });
+                    let brand = await page.$eval('section.sku-detail>div.details-wrapper>div.details>div.sub-title a', brandLinkElement => brandLinkElement.innerText).catch(error => {
+                        console.log(error);
+                        return '';
+                    });
+                    let description = await page.$eval('div#productDescriptionTab>div.product-description', descriptionDivElement => descriptionDivElement.innerHTML).catch(error => {
+                        console.log(error);
+                        return '';
+                    });
+                    let weight = await page.$x("//div[text()='Weight (kg)']").then(async (result) => {
+                        return result.length ? await page.evaluate(weightElement => weightElement.nextElementSibling.innerText,result[0]) : '';
+                    });
+                    let model = await page.$x("//div[text()='Model']").then(async (result) => {
+                        return result.length ? await page.evaluate(modelElement => modelElement.nextElementSibling.innerText,result[0]) : '';
+                    });
+                    let sku = await page.$x("//div[text()='SKU']").then(async (result) => {
+                        return result.length ? await page.evaluate(skuElement => skuElement.nextElementSibling.innerText,result[0]) : 0;
+                    });
                     let imageLinks = await page.$$eval('a.cycle-slide-item', imageLinkElements => {
                         let imageLinks = '';
                         for(let i = 0; i < imageLinkElements.length; i++){
@@ -49,43 +68,51 @@ const Queue = require('bull');
 
                         return imageLinks;
                     });
-                    let categories = 'laptop-accessories,android-phones'; // Mockup 
+                    let listingPrice = await page.$eval('div.details-footer>div.price-box span.price>:last-child', priceSpanElement => priceSpanElement.innerText).catch(error => {
+                        console.log(error);
+                        return '';
+                    });
 
                     var productData = {
-                      name: productName,
-                      slug: slugify(productName.toLowerCase()),
+                      name: name,
+                      slug: slugify(name.toLowerCase()),
                       active: 'TRUE',
-                      categories: categories,
-                      gtin: '',
-                      gtinType: '',
-                      modelNumber: '',
+                      category: slugify(category.name.toLowerCase()),
                       brand: brand,
-                      mpn: '',
                       description: description,
-                      manufacturer: '',
-                      originCountry: 'GH',
                       hasVariant: 'FALSE',
                       requiresShipping: 'TRUE',
+                      imageLinks: imageLinks,
+                      listingPrice: listingPrice,
+                      weight: weight,
+                      sku: sku,
+                      model: model,
+                      manufacturer: '',
+                      originCountry: '',
+                      tags: '',
                       minPrice: '',
                       maxPrice: '',
-                      imageLinks: imageLinks,
-                      tags: '',
+                      gtin: '',
+                      gtinType: '',
+                      mpn: '',
                     };
 
                     // Create & Save Category in CSV file
                     stringify([productData],{
                       header: !(fs.existsSync('jumia_products.csv')),
-                      quote:true,
+                      quoted:true,
                       columns:[
                         {key:'name', header:'NAME'},{key:'slug', header:'SLUG'},{key:'active', header:'ACTIVE'},
-                        {key:'categories',header:'CATEGORIES'},{key:'gtin', header:'GTIN'},{key:'gtinType',header:'GTIN_TYPE'},
-                        {key:'modelNumber',header:'MODEL_NUMBER'},{key:'brand',header:'BRAND'},{key:'mpn',header:'MPN'},{key:'description',header:'DESCRIPTION'},
-                        {key:'manufacturer',header:'MANUFACTURER'},{key:'originCountry',header:'ORIGIN_COUNTRY'},{key:'hasVariant',header:'HAS_VARIANT'},{key:'requiresShipping',header:'REQUIRES_SHIPPING'},
-                        {key:'minPrice',header:'MINIMUM_PRICE'},{key:'maxPrice',header:'MAXIMUM_PRICE'},{key:'imageLinks',header:'IMAGE_LINKS'},{key:'tags',header:'TAGS'},
+                        {key:'category',header:'CATEGORY'},{key:'brand',header:'BRAND'},{key:'description',header:'DESCRIPTION'},
+                        {key:'hasVariant',header:'HAS_VARIANT'},{key:'requiresShipping',header:'REQUIRES_SHIPPING'},{key:'imageLinks',header:'IMAGE_LINKS'},
+                        {key:'listingPrice',header:'LISTING_PRICE'},{key:'weight',header:'WEIGHT_(KG)'},{key:'sku',header:'SKU'},
+                        {key:'model',header:'MODEL'},{key:'manufacturer',header:'MANUFACTURER'},{key:'originCountry',header:'ORIGIN_COUNTRY'},
+                        {key:'tags',header:'TAGS'},{key:'minPrice',header:'MINIMUM_PRICE'},{key:'maxPrice',header:'MAXIMUM_PRICE'},
+                        {key:'gtin', header:'GTIN'},{key:'gtinType',header:'GTIN_TYPE'},{key:'mpn',header:'MPN'},
                       ]},(error, csv_string) => {
                         fs.appendFile('jumia_products.csv', csv_string, (err) => {
                             if (err) throw err;
-                            console.log('Added ' + productName + ' to CSV');
+                            console.log('Added ' + productData.name + ' to CSV');
 
                             // Exit
                             iterator++;
@@ -103,6 +130,6 @@ const Queue = require('bull');
             });
           });
         });
-      })(job.data.link);
+      })(category);
   });
 })();
