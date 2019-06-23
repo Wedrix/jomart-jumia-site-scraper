@@ -1,3 +1,4 @@
-node_modules
-todo.txt
-jumia_products.csv
+*
+!consumer.js
+!producer.js
+!categories.csv

@@ -43,7 +43,7 @@ const Queue = require('bull');
                         console.log(error);
                         return '';
                     });
-                    let description = await page.$eval('div#productDescriptionTab>div.product-description', descriptionDivElement => descriptionDivElement.innerHTML).catch(error => {
+                    let description = await page.$eval('div#productDescriptionTab>div.product-description', descriptionDivElement => descriptionDivElement.innerHTML.replace(/\r?\n|\r/g,'')).catch(error => {
                         console.log(error);
                         return '';
                     });
