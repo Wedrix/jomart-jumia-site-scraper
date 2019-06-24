@@ -62,7 +62,7 @@ const Queue = require('bull');
                             if(i == imageLinkElements.length){
                                 imageLinks = imageLinks + imageLinkElements[i].href;
                             }else{
-                                imageLinks = imageLinks + imageLinkElements[i].href + ',';
+                                imageLinks = imageLinks + imageLinkElements[i].href + '|';
                             }
                         }
 
