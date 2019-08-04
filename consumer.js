@@ -98,7 +98,7 @@ const Queue = require('bull');
                     };
 
                     // Create & Save Category in CSV file
-                    let file = (category.name + '.csv');
+                    const file = (category.name + '.csv');
                     stringify([productData],{
                       header: !(fs.existsSync(file)),
                       quoted:true,
@@ -126,9 +126,13 @@ const Queue = require('bull');
                             }
                         });
                     });
+                }).catch(error => {
+                  console.log(error);
                 });
               })();
             });
+          }).catch(error => {
+            console.log(error);
           });
         });
       })(category);

@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer');
-const stringify = require('csv-stringify');
 const parse = require('csv-parse');
 const fs = require('fs');
 const Queue = require('bull');
@@ -26,9 +25,14 @@ const Queue = require('bull');
             page.goto(categoryPageLink,{timeout:15000}).then(() => {
               console.log('Successfully navigated to category link: ' + categoryPageLink);
 
-              categoryPagesQueue.add(category,{removeOnComplete: true});
+              let queuedCategory = {
+                name: category.name,
+                link: categoryPageLink,
+              };
 
-              console.log('Successfully added category link: ' + categoryPageLink + ' to queue');
+              categoryPagesQueue.add(queuedCategory,{removeOnComplete: true});
+
+              console.log(`Successfully added category: ${queuedCategory.name} => ${queuedCategory.link} to queue.`);
 
               page.$('section.pagination a[title=Next]').then(nextCategoryPageElement => {
                 if(nextCategoryPageElement){
