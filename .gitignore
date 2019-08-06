@@ -2,3 +2,6 @@
 !consumer.js
 !producer.js
 !categoriesProducer.js
+!package.json
+!README.md
+!example_categories.csv

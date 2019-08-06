@@ -1,0 +1,29 @@
+{
+  "name": "jomarrt-web-scraper",
+  "version": "1.0.0",
+  "description": "Jumia Web Scraper for Jomartt",
+  "main": "producer.js",
+  "dependencies": {
+    "bull": "^3.10.0",
+    "csv": "^5.1.1",
+    "csv-parse": "^4.4.3",
+    "csv-stringify": "^5.3.0",
+    "fs": "0.0.1-security",
+    "puppeteer": "^1.19.0",
+    "slugify": "^1.3.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Wedrix/jumia-site-scraper-for-jomartt.git"
+  },
+  "author": "James Wedam Anewenah",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/Wedrix/jumia-site-scraper-for-jomartt/issues"
+  },
+  "homepage": "https://gitlab.com/Wedrix/jumia-site-scraper-for-jomartt#README"
+}
