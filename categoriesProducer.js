@@ -11,7 +11,7 @@ const fs = require('fs');
         console.log('Successfully navigated to category link: https://www.jumia.com.gh/index/allcategories/');
 
         // Scrape Category Page
-        page.$$eval('section.osh-category-tree ul.osh-subcategories>li.osh-subcategory:not(:first-child)>a',categoryLinkElements => {
+        page.$$eval('a.-gy5',categoryLinkElements => {
             let categories = [];
 
             for(let i = 0; i < categoryLinkElements.length; i++) {

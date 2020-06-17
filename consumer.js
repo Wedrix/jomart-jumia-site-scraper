@@ -17,7 +17,7 @@ const Queue = require('bull');
             console.log('Successfully navigated to category link: ' + category.link);
 
             // Scrape Category Page
-            page.$$eval('section.products>div.sku>a.link',productLinkElements => {
+            page.$$eval('a.core',productLinkElements => {
               let productLinks = [];
 
               for(let i = 0; i < productLinkElements.length; i++){
@@ -35,43 +35,42 @@ const Queue = require('bull');
                     console.log('Successfully navigated to product link: ' + productLink);
 
                     // Scrape Product Page
-                    let name = await page.$eval('section.sku-detail>div.details-wrapper>div.details h1.title',titleH1Element => titleH1Element.innerText).catch(error => {
+                    let name = await page.$eval('#jm > main > div > section > div > div.col10 > div.-df.-j-bet > div > h1',titleH1Element => titleH1Element.innerText).catch(error => {
                         console.log(error);
                         return '';
                     });
-                    let brand = await page.$eval('section.sku-detail>div.details-wrapper>div.details>div.sub-title a', brandLinkElement => brandLinkElement.innerText).catch(error => {
+                    let brand = await page.$eval('#jm > main > div > section > div > div.col10 > div.-phs > div.-fs14.-pvxs > a', brandLinkElement => brandLinkElement.innerText).catch(error => {
                         console.log(error);
                         return '';
                     });
-                    let description = await page.$eval('div#productDescriptionTab>div.product-description', descriptionDivElement => descriptionDivElement.innerHTML.replace(/\r?\n|\r/g,'')).catch(error => {
+                    let description = await page.$eval('#jm > main > div > div.col12 > div > div.markup.-mhm.-pvl.-oxa.-sc', descriptionDivElement => descriptionDivElement.innerHTML.replace(/\r?\n|\r/g,'')).catch(error => {
                         console.log(error);
                         return '';
                     });
-                    let weight = await page.$x("//div[text()='Weight (kg)']").then(async (result) => {
-                        return result.length ? await page.evaluate(weightElement => weightElement.nextElementSibling.innerText,result[0]) : '';
+                    let weight = await page.$x("//span[text()='Weight (kg)']").then(async (result) => {
+                        return result.length ? await page.evaluate(async weightElement => {
+                          return Number.parseFloat((await weightElement.parentElement.innerText).substr(13));
+                        }, result[0]) : '';
                     });
-                    let model = await page.$x("//div[text()='Model']").then(async (result) => {
-                        return result.length ? await page.evaluate(modelElement => modelElement.nextElementSibling.innerText,result[0]) : '';
+                    let model = await page.$x("//span[text()='Model']").then(async (result) => {
+                        return result.length ? (await page.evaluate(modelElement => modelElement.parentElement.innerText, result[0])).substr(7) : '';
                     });
-                    let sku = await page.$x("//div[text()='SKU']").then(async (result) => {
-                        return result.length ? await page.evaluate(skuElement => skuElement.nextElementSibling.innerText,result[0]) : 0;
+                    let sku = await page.$x("//span[text()='SKU']").then(async (result) => {
+                        return result.length ? (await page.evaluate(skuElement => skuElement.parentElement.innerText, result[0])).substr(5) : 0;
                     });
-                    let imageLinks = await page.$$eval('a.cycle-slide-item', imageLinkElements => {
+                    let imageLinks = await page.$$eval('#imgs > a > img', imageLinkElements => {
                         let imageLinks = '';
                         for(let i = 0; i < imageLinkElements.length; i++){
                             if(i == imageLinkElements.length){
-                                imageLinks = imageLinks + imageLinkElements[i].href;
+                                imageLinks = imageLinks + imageLinkElements[i].getAttribute('data-src');
                             }else{
-                                imageLinks = imageLinks + imageLinkElements[i].href + '|';
+                                imageLinks = imageLinks + imageLinkElements[i].getAttribute('data-src') + '|';
                             }
                         }
 
                         return imageLinks;
                     });
-                    let listingPrice = await page.$eval('div.details-footer>div.price-box span.price>:last-child', priceSpanElement => priceSpanElement.innerText).catch(error => {
-                        console.log(error);
-                        return '';
-                    });
+                    let listingPrice = Number.parseFloat((await page.$eval('div.-hr.-pvs.-mtxs > span', priceSpanElement => priceSpanElement.innerText)).substr(4));
 
                     let productData = {
                       name: name,
