@@ -17,18 +17,28 @@ const Queue = require('bull');
             console.log('Successfully navigated to category link: ' + category.link);
 
             // Scrape Category Page
-            page.$$eval('a.core',productLinkElements => {
-              let productLinks = [];
+            page.$$eval('a.core', productLinkElements => {
+                const productLinks = [];
 
-              for(let i = 0; i < productLinkElements.length; i++){
-                  productLinks.push(productLinkElements[i].href);
-              }
+                productLinkElements.forEach(productLinkElement => productLinks.push(productLinkElement.href));
 
-              return productLinks;
-            }).then((productLinks) => {
+                return productLinks;
+            }).then(productLinks => {
               var iterator = 0;
 
-              (function scrapeProductPage(){
+              (function scrapeProductPage() {
+
+                function scrapeNextProductPage() {
+                    iterator++;
+
+                    if(iterator < productLinks.length){
+                      scrapeProductPage();
+                    }else{
+                      page.close();
+                      done();
+                    }
+                };
+
                 let productLink = productLinks[iterator];
 
                 page.goto(productLink,{timeout:15000}).then(async () => {
@@ -115,23 +125,19 @@ const Queue = require('bull');
                             console.log('Added ' + productData.name + ' to ' + file);
 
                             // Exit
-                            iterator++;
-
-                            if(iterator < productLinks.length){
-                              scrapeProductPage();
-                            }else{
-                              page.close();
-                              done();
-                            }
+                            scrapeNextProductPage();
                         });
                     });
                 }).catch(error => {
                   console.log(error);
+                  console.log(`Broken Product Link: ${productLink}`);
+                  scrapeNextProductPage();
                 });
               })();
             });
           }).catch(error => {
             console.log(error);
+            console.log(`Broken Category Link: ${category.link}`);
           });
         });
       })(category);

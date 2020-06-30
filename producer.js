@@ -18,8 +18,23 @@ const Queue = require('bull');
       // Parse Category Pages
       var iterator = 0;
 
-      (function parseCategoryPage(categoryPageLink){
+      (function parseCategoryPage(categoryPageLink) {
           let category = categories[iterator];
+
+          function parseNextCategory() {
+            setTimeout(() => {
+                // Exit
+                iterator++;
+    
+                if(iterator < categories.length){
+                    let categoryPageLink = categories[iterator].link;
+                    parseCategoryPage(categoryPageLink);
+                }else{
+                    console.log('Job Completed! Welcome Jomartt!');
+                    page.close();
+                }
+            }, 300000);
+          };
 
           browser.newPage().then((page) => {
             page.goto(categoryPageLink,{timeout:15000}).then(() => {
@@ -34,24 +49,27 @@ const Queue = require('bull');
 
               console.log(`Successfully added category: ${queuedCategory.name} => ${queuedCategory.link} to queue.`);
 
-              page.$('section.pagination a[title=Next]').then(nextCategoryPageElement => {
+              page.$('a[aria-label="Next Page"]').then(nextCategoryPageElement => {
                 if(nextCategoryPageElement){
-                    page.$eval('section.pagination a[title=Next]',nextCategoryPageElement => nextCategoryPageElement.href).then(nextPageLink => {
-                        parseCategoryPage(nextPageLink);
+                    page.$eval('a[aria-label="Next Page"]',nextCategoryPageElement => nextCategoryPageElement.href).then(nextPageLink => {
+                        if (nextPageLink) {
+                          parseCategoryPage(nextPageLink);
+                        } else {
+                          parseNextCategory();
+                        }
                     });
-                }else{
-                    // Exit
-                    iterator++;
-
-                    if(iterator < categories.length){
-                        let categoryPageLink = categories[iterator].link;
-                        parseCategoryPage(categoryPageLink);
-                    }else{
-                        console.log('Job Completed! Welcome Jomartt!');
-                        page.close();
-                    }
+                } else {
+                  parseNextCategory();
                 }
               });
+            }).catch(error => {
+              console.log(error);
+              console.log(`Broken Link: ${categoryPageLink}`,typeof(categoryPageLink));
+
+              // Retry After 15 seconds
+              setTimeout(() => {
+                parseCategoryPage(categoryPageLink);
+              }, 15000);
             });
           });
       })(categories[0].link);
